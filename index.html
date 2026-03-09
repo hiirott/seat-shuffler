@@ -247,7 +247,13 @@
     <div class="toggle-section">
       <button class="toggle-btn" onclick="toggleNameInput()">📝 名前を入力する（任意）</button>
       <div id="name-input-area" style="display:none;margin-top:12px">
-        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">空欄の場合は番号で表示されます。人数変更時は自動で更新されます。</p>
+        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">名前を1行1名で貼り付けてください。空欄の場合は番号で表示されます。</p>
+        <textarea id="name-paste" rows="6" placeholder="田中太郎&#10;山田花子&#10;佐藤次郎&#10;（1行に1名ずつ貼り付け）" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;resize:vertical;margin-bottom:8px"></textarea>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+          <button class="btn btn-ghost" style="font-size:0.82rem" onclick="applyPastedNames()">反映</button>
+          <button class="btn btn-ghost" style="font-size:0.82rem;color:#ef4444" onclick="clearNames()">クリア</button>
+          <span id="name-count-badge" style="font-size:0.78rem;color:var(--muted)"></span>
+        </div>
         <div id="name-input-table-wrap"></div>
       </div>
     </div>
@@ -267,6 +273,34 @@ function toggleNameInput() {
   if (nameInputVisible) buildNameInputTable();
 }
 
+function applyPastedNames() {
+  const text = document.getElementById('name-paste').value;
+  const lines = text.split(/\n/).map(l => l.trim()).filter(l => l);
+  if (lines.length === 0) return;
+  // 人数を自動更新
+  document.getElementById('numPeople').value = lines.length;
+  buildNameInputTable();
+  // 各行を反映
+  lines.forEach((name, i) => {
+    const inp = document.querySelector(`#name-input-table-wrap input[data-num="${i + 1}"]`);
+    if (inp) inp.value = name;
+  });
+  updateNameCount();
+}
+
+function clearNames() {
+  document.getElementById('name-paste').value = '';
+  document.querySelectorAll('#name-input-table-wrap input[data-num]').forEach(inp => inp.value = '');
+  updateNameCount();
+}
+
+function updateNameCount() {
+  const inputs = document.querySelectorAll('#name-input-table-wrap input[data-num]');
+  const filled = Array.from(inputs).filter(inp => inp.value.trim()).length;
+  const badge = document.getElementById('name-count-badge');
+  badge.textContent = filled > 0 ? `${filled}名入力済み` : '';
+}
+
 function buildNameInputTable() {
   const n = parseInt(document.getElementById('numPeople').value) || 16;
   const wrap = document.getElementById('name-input-table-wrap');
@@ -277,10 +311,11 @@ function buildNameInputTable() {
   });
   let html = '<table class="name-input-table"><tr><th>No.</th><td><b>名前</b></td></tr>';
   for (let i = 1; i <= n; i++) {
-    html += `<tr><th>${i}</th><td><input type="text" data-num="${i}" value="${existing[i] || ''}" placeholder="（番号${i}）"></td></tr>`;
+    html += `<tr><th>${i}</th><td><input type="text" data-num="${i}" value="${existing[i] || ''}" placeholder="（番号${i}）" oninput="updateNameCount()"></td></tr>`;
   }
   html += '</table>';
   wrap.innerHTML = html;
+  updateNameCount();
 }
 
 document.getElementById('numPeople').addEventListener('change', () => {
