@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>席替えシャッフラー</title>
+<style>
+  :root {
+    --bg: #f8fafc;
+    --card: #fff;
+    --border: #e2e8f0;
+    --accent: #6366f1;
+    --accent-hover: #4f46e5;
+    --text: #1e293b;
+    --muted: #64748b;
+    --success: #22c55e;
+    --warn: #f59e0b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 {
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .subtitle { font-size: 0.85rem; color: var(--muted); margin-bottom: 24px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .form-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    align-items: flex-end;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .form-group input, .form-group select {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    width: 140px;
+  }
+  .btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-success {
+    background: var(--success);
+    color: #fff;
+  }
+  .btn-success:hover { opacity: 0.9; }
+  .btn-warn {
+    background: var(--warn);
+    color: #fff;
+  }
+  .btn-warn:hover { opacity: 0.9; }
+  .btn-ghost {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { background: #f1f5f9; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* 結果テーブル */
+  .result-section { margin-top: 24px; }
+  .result-section h2 {
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .round-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .table-card {
+    background: #f1f5f9;
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .table-card h4 {
+    font-size: 0.85rem;
+    color: var(--accent);
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--accent);
+  }
+  .table-card .member {
+    font-size: 0.85rem;
+    padding: 3px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .member .num {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* 重複ペア分析 */
+  .stats {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    background: #f1f5f9;
+    border-radius: 8px;
+  }
+  .stats .good { color: var(--success); font-weight: 600; }
+  .stats .warn { color: var(--warn); font-weight: 600; }
+
+  /* 番号→テーブル一覧表 */
+  .person-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-top: 8px;
+  }
+  .person-table th, .person-table td {
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    text-align: center;
+  }
+  .person-table th {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  .person-table tr:nth-child(even) { background: #f8fafc; }
+
+  /* 名簿入力テーブル */
+  .name-input-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+  }
+  .name-input-table th, .name-input-table td {
+    border: 1px solid var(--border);
+    padding: 4px 8px;
+    text-align: left;
+  }
+  .name-input-table th {
+    background: #f1f5f9;
+    font-weight: 600;
+    width: 60px;
+    text-align: center;
+  }
+  .name-input-table input {
+    width: 100%;
+    border: none;
+    padding: 4px;
+    font-size: 0.85rem;
+    outline: none;
+  }
+
+  .toggle-section {
+    margin-bottom: 16px;
+  }
+  .toggle-btn {
+    font-size: 0.82rem;
+    color: var(--accent);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-weight: 600;
+    padding: 0;
+  }
+  .toggle-btn:hover { text-decoration: underline; }
+
+  @media (max-width: 600px) {
+    .form-row { flex-direction: column; gap: 12px; }
+    .form-group input { width: 100%; }
+    .round-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🪑 席替えシャッフラー</h1>
+  <p class="subtitle">交流会・イベントの席替えをランダムに割り振り。同じ人との同席を最小化します。</p>
+
+  <div class="card">
+    <div class="form-row">
+      <div class="form-group">
+        <label>参加人数</label>
+        <input type="number" id="numPeople" value="16" min="2" max="200">
+      </div>
+      <div class="form-group">
+        <label>テーブル数</label>
+        <input type="number" id="numTables" value="4" min="2" max="50">
+      </div>
+      <div class="form-group">
+        <label>席替え回数</label>
+        <input type="number" id="numRounds" value="4" min="1" max="10">
+      </div>
+      <div class="form-group">
+        <label>&nbsp;</label>
+        <button class="btn btn-primary" onclick="generate()">🎲 シャッフル！</button>
+      </div>
+    </div>
+
+    <div class="toggle-section">
+      <button class="toggle-btn" onclick="toggleNameInput()">📝 名前を入力する（任意）</button>
+      <div id="name-input-area" style="display:none;margin-top:12px">
+        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">空欄の場合は番号で表示されます。人数変更時は自動で更新されます。</p>
+        <div id="name-input-table-wrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="result"></div>
+</div>
+
+<script>
+// ── 名前入力 ──
+let nameInputVisible = false;
+
+function toggleNameInput() {
+  nameInputVisible = !nameInputVisible;
+  const area = document.getElementById('name-input-area');
+  area.style.display = nameInputVisible ? '' : 'none';
+  if (nameInputVisible) buildNameInputTable();
+}
+
+function buildNameInputTable() {
+  const n = parseInt(document.getElementById('numPeople').value) || 16;
+  const wrap = document.getElementById('name-input-table-wrap');
+  // 既存の名前を保持
+  const existing = {};
+  wrap.querySelectorAll('input[data-num]').forEach(inp => {
+    if (inp.value.trim()) existing[inp.dataset.num] = inp.value.trim();
+  });
+  let html = '<table class="name-input-table"><tr><th>No.</th><td><b>名前</b></td></tr>';
+  for (let i = 1; i <= n; i++) {
+    html += `<tr><th>${i}</th><td><input type="text" data-num="${i}" value="${existing[i] || ''}" placeholder="（番号${i}）"></td></tr>`;
+  }
+  html += '</table>';
+  wrap.innerHTML = html;
+}
+
+document.getElementById('numPeople').addEventListener('change', () => {
+  if (nameInputVisible) buildNameInputTable();
+});
+
+function getNames() {
+  const n = parseInt(document.getElementById('numPeople').value) || 16;
+  const names = {};
+  document.querySelectorAll('#name-input-table-wrap input[data-num]').forEach(inp => {
+    if (inp.value.trim()) names[parseInt(inp.dataset.num)] = inp.value.trim();
+  });
+  const result = [];
+  for (let i = 1; i <= n; i++) {
+    result.push(names[i] || `${i}番`);
+  }
+  return result;
+}
+
+// ── テーブル名 ──
+function tableName(idx) {
+  return String.fromCharCode(65 + idx) + 'テーブル';
+}
+
+// ── コア: 席割り振りアルゴリズム ──
+// 社会的ゴルファー問題の近似解法
+// 重複ペアを最小化するように複数回試行してベストを選ぶ
+
+function generate() {
+  const numPeople = parseInt(document.getElementById('numPeople').value);
+  const numTables = parseInt(document.getElementById('numTables').value);
+  const numRounds = parseInt(document.getElementById('numRounds').value);
+
+  if (numPeople < 2 || numTables < 2 || numRounds < 1) {
+    alert('入力値を確認してください');
+    return;
+  }
+  if (numTables > numPeople) {
+    alert('テーブル数は参加人数以下にしてください');
+    return;
+  }
+
+  // 複数回試行してベストを選ぶ
+  let bestResult = null;
+  let bestScore = Infinity;
+  const attempts = 500;
+
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const result = tryGenerate(numPeople, numTables, numRounds);
+    const score = countDuplicatePairs(result, numPeople);
+    if (score < bestScore) {
+      bestScore = score;
+      bestResult = result;
+      if (score === 0) break; // 完全解
+    }
+  }
+
+  renderResult(bestResult, numPeople, numTables, numRounds, bestScore);
+}
+
+function tryGenerate(numPeople, numTables, numRounds) {
+  const rounds = [];
+  // pairCount[i][j] = i番とj番が同席した回数
+  const pairCount = Array.from({ length: numPeople }, () => new Array(numPeople).fill(0));
+
+  for (let r = 0; r < numRounds; r++) {
+    // 各テーブルの定員を計算
+    const baseSize = Math.floor(numPeople / numTables);
+    const extra = numPeople % numTables;
+    const tableSizes = [];
+    for (let t = 0; t < numTables; t++) {
+      tableSizes.push(baseSize + (t < extra ? 1 : 0));
+    }
+
+    let bestRound = null;
+    let bestRoundScore = Infinity;
+
+    // この回で複数パターン試してベストを選ぶ
+    const innerAttempts = 20;
+    for (let a = 0; a < innerAttempts; a++) {
+      const tables = assignRound(numPeople, numTables, tableSizes, pairCount);
+      const score = scoreRound(tables, pairCount);
+      if (score < bestRoundScore) {
+        bestRoundScore = score;
+        bestRound = tables;
+        if (score === 0) break;
+      }
+    }
+
+    // pairCountを更新
+    for (const table of bestRound) {
+      for (let i = 0; i < table.length; i++) {
+        for (let j = i + 1; j < table.length; j++) {
+          pairCount[table[i]][table[j]]++;
+          pairCount[table[j]][table[i]]++;
+        }
+      }
+    }
+    rounds.push(bestRound);
+  }
+  return rounds;
+}
+
+function assignRound(numPeople, numTables, tableSizes, pairCount) {
+  const people = Array.from({ length: numPeople }, (_, i) => i);
+  // シャッフル
+  for (let i = people.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [people[i], people[j]] = [people[j], people[i]];
+  }
+
+  const tables = Array.from({ length: numTables }, () => []);
+  // 貪欲法: 各人を、既存同席ペアが最も少ないテーブルに配置
+  for (const person of people) {
+    let bestTable = -1;
+    let bestCost = Infinity;
+    const candidates = [];
+
+    for (let t = 0; t < numTables; t++) {
+      if (tables[t].length >= tableSizes[t]) continue;
+      let cost = 0;
+      for (const other of tables[t]) {
+        cost += pairCount[person][other];
+      }
+      if (cost < bestCost) {
+        bestCost = cost;
+        candidates.length = 0;
+        candidates.push(t);
+      } else if (cost === bestCost) {
+        candidates.push(t);
+      }
+    }
+    // 同コストなら空きが多いテーブル優先（バランス）、同じなら乱択
+    if (candidates.length > 1) {
+      candidates.sort((a, b) => tables[a].length - tables[b].length);
+      const minLen = tables[candidates[0]].length;
+      const tied = candidates.filter(c => tables[c].length === minLen);
+      bestTable = tied[Math.floor(Math.random() * tied.length)];
+    } else {
+      bestTable = candidates[0];
+    }
+    tables[bestTable].push(person);
+  }
+  return tables;
+}
+
+function scoreRound(tables, pairCount) {
+  let score = 0;
+  for (const table of tables) {
+    for (let i = 0; i < table.length; i++) {
+      for (let j = i + 1; j < table.length; j++) {
+        score += pairCount[table[i]][table[j]];
+      }
+    }
+  }
+  return score;
+}
+
+function countDuplicatePairs(rounds, numPeople) {
+  const pairCount = Array.from({ length: numPeople }, () => new Array(numPeople).fill(0));
+  for (const round of rounds) {
+    for (const table of round) {
+      for (let i = 0; i < table.length; i++) {
+        for (let j = i + 1; j < table.length; j++) {
+          pairCount[table[i]][table[j]]++;
+        }
+      }
+    }
+  }
+  let dupes = 0;
+  for (let i = 0; i < numPeople; i++) {
+    for (let j = i + 1; j < numPeople; j++) {
+      if (pairCount[i][j] > 1) dupes += pairCount[i][j] - 1;
+    }
+  }
+  return dupes;
+}
+
+// ── 結果表示 ──
+
+function renderResult(rounds, numPeople, numTables, numRounds, dupeScore) {
+  const names = getNames();
+  let html = '<div class="result-section">';
+
+  // 統計
+  const statsClass = dupeScore === 0 ? 'good' : 'warn';
+  const statsText = dupeScore === 0
+    ? '全ラウンドで同じ人との重複なし！'
+    : `重複ペア: ${dupeScore}組（完全回避が困難な組み合わせです）`;
+  html += `<div class="stats"><span class="${statsClass}">${statsText}</span>　参加者${numPeople}名 / ${numTables}テーブル / ${numRounds}回</div>`;
+
+  // 各ラウンドのテーブル表示
+  for (let r = 0; r < rounds.length; r++) {
+    html += `<h2>🔄 ${r + 1}回目</h2><div class="round-grid">`;
+    for (let t = 0; t < rounds[r].length; t++) {
+      html += `<div class="table-card"><h4>${tableName(t)}</h4>`;
+      for (const p of rounds[r][t]) {
+        html += `<div class="member"><span class="num">${p + 1}</span> ${escHtml(names[p])}</div>`;
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  // 番号別一覧表
+  html += '<h2>📋 番号別テーブル一覧</h2>';
+  html += '<table class="person-table"><tr><th>番号</th><th>名前</th>';
+  for (let r = 0; r < numRounds; r++) {
+    html += `<th>${r + 1}回目</th>`;
+  }
+  html += '</tr>';
+
+  // 各人のテーブル割り当てを集計
+  const personTables = Array.from({ length: numPeople }, () => []);
+  for (let r = 0; r < rounds.length; r++) {
+    for (let t = 0; t < rounds[r].length; t++) {
+      for (const p of rounds[r][t]) {
+        personTables[p].push(tableName(t));
+      }
+    }
+  }
+
+  for (let p = 0; p < numPeople; p++) {
+    html += `<tr><td><b>${p + 1}</b></td><td>${escHtml(names[p])}</td>`;
+    for (const tn of personTables[p]) {
+      html += `<td>${tn}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+
+  // ダウンロードボタン
+  html += `<div class="actions" style="margin-top:16px">
+    <button class="btn btn-success" onclick="downloadCSV()">📥 CSVダウンロード</button>
+    <button class="btn btn-warn" onclick="downloadExcel()">📥 Excelダウンロード</button>
+    <button class="btn btn-ghost" onclick="generate()">🎲 再シャッフル</button>
+  </div>`;
+
+  html += '</div>';
+  document.getElementById('result').innerHTML = html;
+
+  // データをグローバルに保持（ダウンロード用）
+  window._lastResult = { rounds, numPeople, numTables, numRounds, names, personTables };
+}
+
+function escHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ── CSVダウンロード ──
+
+function downloadCSV() {
+  const d = window._lastResult;
+  if (!d) return;
+
+  // BOM付きUTF-8
+  let csv = '\uFEFF';
+
+  // ヘッダー
+  csv += '番号,名前';
+  for (let r = 0; r < d.numRounds; r++) csv += `,${r + 1}回目`;
+  csv += '\n';
+
+  // データ
+  for (let p = 0; p < d.numPeople; p++) {
+    csv += `${p + 1},${d.names[p]}`;
+    for (const tn of d.personTables[p]) csv += `,${tn}`;
+    csv += '\n';
+  }
+
+  // ラウンド別詳細
+  csv += '\n--- ラウンド別詳細 ---\n';
+  for (let r = 0; r < d.rounds.length; r++) {
+    csv += `\n${r + 1}回目\n`;
+    for (let t = 0; t < d.rounds[r].length; t++) {
+      const members = d.rounds[r][t].map(p => `${p + 1}番 ${d.names[p]}`).join(' / ');
+      csv += `${tableName(t)},${members}\n`;
+    }
+  }
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `席替え_${d.numPeople}名_${d.numRounds}回.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Excelダウンロード（xlsx形式・ライブラリ不要の簡易XML） ──
+
+function downloadExcel() {
+  const d = window._lastResult;
+  if (!d) return;
+
+  // SpreadsheetML (XML) 形式 — Excelで開ける
+  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  xml += '<?mso-application progid="Excel.Sheet"?>\n';
+  xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n';
+  xml += ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n';
+
+  // スタイル
+  xml += '<Styles>\n';
+  xml += '<Style ss:ID="header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6366F1" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center"/></Style>\n';
+  xml += '<Style ss:ID="center"><Alignment ss:Horizontal="Center"/></Style>\n';
+  xml += '<Style ss:ID="tableHeader"><Font ss:Bold="1" ss:Color="#6366F1"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2" ss:Color="#6366F1"/></Borders></Style>\n';
+  xml += '</Styles>\n';
+
+  // シート1: 番号別一覧
+  xml += '<Worksheet ss:Name="番号別一覧">\n<Table>\n';
+  // ヘッダー
+  xml += '<Row>';
+  xml += '<Cell ss:StyleID="header"><Data ss:Type="String">番号</Data></Cell>';
+  xml += '<Cell ss:StyleID="header"><Data ss:Type="String">名前</Data></Cell>';
+  for (let r = 0; r < d.numRounds; r++) {
+    xml += `<Cell ss:StyleID="header"><Data ss:Type="String">${r + 1}回目</Data></Cell>`;
+  }
+  xml += '</Row>\n';
+  // データ
+  for (let p = 0; p < d.numPeople; p++) {
+    xml += '<Row>';
+    xml += `<Cell ss:StyleID="center"><Data ss:Type="Number">${p + 1}</Data></Cell>`;
+    xml += `<Cell><Data ss:Type="String">${escXml(d.names[p])}</Data></Cell>`;
+    for (const tn of d.personTables[p]) {
+      xml += `<Cell ss:StyleID="center"><Data ss:Type="String">${escXml(tn)}</Data></Cell>`;
+    }
+    xml += '</Row>\n';
+  }
+  xml += '</Table>\n</Worksheet>\n';
+
+  // シート2: ラウンド別
+  xml += '<Worksheet ss:Name="ラウンド別">\n<Table>\n';
+  for (let r = 0; r < d.rounds.length; r++) {
+    xml += `<Row><Cell ss:StyleID="tableHeader"><Data ss:Type="String">${r + 1}回目</Data></Cell></Row>\n`;
+    for (let t = 0; t < d.rounds[r].length; t++) {
+      xml += '<Row>';
+      xml += `<Cell><Data ss:Type="String">${escXml(tableName(t))}</Data></Cell>`;
+      for (const p of d.rounds[r][t]) {
+        xml += `<Cell><Data ss:Type="String">${p + 1}番 ${escXml(d.names[p])}</Data></Cell>`;
+      }
+      xml += '</Row>\n';
+    }
+    xml += '<Row></Row>\n';
+  }
+  xml += '</Table>\n</Worksheet>\n';
+
+  xml += '</Workbook>';
+
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `席替え_${d.numPeople}名_${d.numRounds}回.xls`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function escXml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>
