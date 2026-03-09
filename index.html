@@ -24,7 +24,7 @@
     min-height: 100vh;
     padding: 20px;
   }
-  .container { max-width: 900px; margin: 0 auto; }
+  .container { max-width: 960px; margin: 0 auto; }
   h1 {
     font-size: 1.5rem;
     margin-bottom: 4px;
@@ -39,6 +39,13 @@
     border-radius: 12px;
     padding: 20px;
     margin-bottom: 16px;
+  }
+  .card h3 {
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   .form-row {
     display: flex;
@@ -92,6 +99,44 @@
   .btn-ghost:hover { background: #f1f5f9; }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ラウンド設定 */
+  .round-settings-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    font-size: 0.88rem;
+  }
+  .round-settings-row label {
+    font-weight: 600;
+    min-width: 52px;
+  }
+  .round-settings-row select {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+  }
+  .theme-name-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+  }
+  .theme-name-row input {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    width: 160px;
+  }
+  .theme-name-row .theme-label {
+    font-weight: 600;
+    color: var(--muted);
+    min-width: 60px;
+  }
 
   /* 結果テーブル */
   .result-section { margin-top: 24px; }
@@ -187,9 +232,9 @@
   .name-input-table th {
     background: #f1f5f9;
     font-weight: 600;
-    width: 60px;
     text-align: center;
   }
+  .name-input-table th:first-child { width: 50px; }
   .name-input-table input {
     width: 100%;
     border: none;
@@ -212,9 +257,25 @@
   }
   .toggle-btn:hover { text-decoration: underline; }
 
+  .hint {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .round-mode-badge {
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    margin-left: 8px;
+  }
+  .badge-random { background: var(--accent); color: #fff; }
+  .badge-theme { background: #ddd6fe; color: #7c3aed; }
+
   @media (max-width: 600px) {
     .form-row { flex-direction: column; gap: 12px; }
-    .form-group input { width: 100%; }
+    .form-group input, .form-group select { width: 100%; }
     .round-grid { grid-template-columns: 1fr 1fr; }
   }
 </style>
@@ -222,7 +283,7 @@
 <body>
 <div class="container">
   <h1>🪑 席替えシャッフラー</h1>
-  <p class="subtitle">交流会・イベントの席替えをランダムに割り振り。同じ人との同席を最小化します。</p>
+  <p class="subtitle">交流会・イベントの席替えをランダムに割り振り。テーマ別の席分けにも対応。</p>
 
   <div class="card">
     <div class="form-row">
@@ -236,7 +297,7 @@
       </div>
       <div class="form-group">
         <label>席替え回数</label>
-        <input type="number" id="numRounds" value="4" min="1" max="10">
+        <input type="number" id="numRounds" value="3" min="1" max="10">
       </div>
       <div class="form-group">
         <label>&nbsp;</label>
@@ -244,11 +305,28 @@
       </div>
     </div>
 
+    <!-- テーマ別チェック -->
+    <div style="margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem;font-weight:600">
+        <input type="checkbox" id="useTheme" onchange="onThemeToggle()" style="width:18px;height:18px;accent-color:var(--accent)">
+        テーマ別に座席を指定する
+      </label>
+      <div id="theme-settings-area" style="display:none;margin-top:12px;padding:16px;background:#f8f7ff;border-radius:10px;border:1px solid #e0def7">
+        <div class="theme-name-row" style="margin-bottom:12px">
+          <span class="theme-label">テーマ名:</span>
+          <input type="text" id="theme1-name" value="テーマ1" placeholder="例: 年代別" oninput="onThemeNameChange()">
+          <input type="text" id="theme2-name" value="テーマ2" placeholder="例: 5つの力" oninput="onThemeNameChange()">
+        </div>
+        <div id="round-settings-rows"></div>
+      </div>
+    </div>
+
+    <!-- 名前・テーマ入力 -->
     <div class="toggle-section">
-      <button class="toggle-btn" onclick="toggleNameInput()">📝 名前を入力する（任意）</button>
+      <button class="toggle-btn" onclick="toggleNameInput()" id="name-input-toggle-btn">📝 名前を入力する（任意）</button>
       <div id="name-input-area" style="display:none;margin-top:12px">
-        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:8px">名前を1行1名で貼り付けてください。空欄の場合は番号で表示されます。</p>
-        <textarea id="name-paste" rows="6" placeholder="田中太郎&#10;山田花子&#10;佐藤次郎&#10;（1行に1名ずつ貼り付け）" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;resize:vertical;margin-bottom:8px"></textarea>
+        <p class="hint" id="paste-hint">名前を1行1名で貼り付けてください。空欄の場合は番号で表示されます。</p>
+        <textarea id="name-paste" rows="6" placeholder="田中太郎&#10;山田花子&#10;佐藤次郎&#10;（1行に1名ずつ貼り付け）" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;resize:vertical;margin-bottom:8px;font-family:monospace"></textarea>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
           <button class="btn btn-ghost" style="font-size:0.82rem" onclick="applyPastedNames()">反映</button>
           <button class="btn btn-ghost" style="font-size:0.82rem;color:#ef4444" onclick="clearNames()">クリア</button>
@@ -263,9 +341,98 @@
 </div>
 
 <script>
-// ── 名前入力 ──
+// ── 状態 ──
 let nameInputVisible = false;
 
+// ── テーマ別トグル ──
+function isThemeMode() {
+  return document.getElementById('useTheme').checked;
+}
+
+function onThemeToggle() {
+  const on = isThemeMode();
+  document.getElementById('theme-settings-area').style.display = on ? '' : 'none';
+  // ボタン・ヒント・プレースホルダ切替
+  document.getElementById('name-input-toggle-btn').textContent = on
+    ? '📝 名前・テーマを入力する（任意）'
+    : '📝 名前を入力する（任意）';
+  document.getElementById('paste-hint').textContent = on
+    ? 'スプレッドシートからコピペできます（タブ区切り: 名前 → テーマ1 → テーマ2）。名前だけの貼り付けもOK。'
+    : '名前を1行1名で貼り付けてください。空欄の場合は番号で表示されます。';
+  document.getElementById('name-paste').placeholder = on
+    ? '田中太郎\t20代\t稼ぐ力\n山田花子\t30代\t貯める力\n佐藤次郎\t20代\t守る力\n\n※タブ区切りでスプレッドシートから貼り付け\n※名前だけでもOK'
+    : '田中太郎\n山田花子\n佐藤次郎\n（1行に1名ずつ貼り付け）';
+  if (on) buildRoundSettings();
+  // 名簿テーブルが開いていたら列を更新
+  if (nameInputVisible) buildNameInputTable();
+}
+
+// ── テーマ名 ──
+function getThemeName(idx) {
+  if (idx === 1) return document.getElementById('theme1-name').value.trim() || 'テーマ1';
+  if (idx === 2) return document.getElementById('theme2-name').value.trim() || 'テーマ2';
+  return '';
+}
+
+function onThemeNameChange() {
+  buildRoundSettings();
+  if (nameInputVisible) updateTableHeader();
+}
+
+function updateTableHeader() {
+  const th1 = document.getElementById('th-theme1');
+  const th2 = document.getElementById('th-theme2');
+  if (th1) th1.textContent = getThemeName(1);
+  if (th2) th2.textContent = getThemeName(2);
+}
+
+// ── ラウンド設定 ──
+function buildRoundSettings() {
+  const n = parseInt(document.getElementById('numRounds').value) || 3;
+  const wrap = document.getElementById('round-settings-rows');
+  // 既存の選択値を保持
+  const existing = {};
+  wrap.querySelectorAll('select[data-round]').forEach(sel => {
+    existing[sel.dataset.round] = sel.value;
+  });
+
+  const t1 = getThemeName(1);
+  const t2 = getThemeName(2);
+
+  let html = '';
+  for (let r = 1; r <= n; r++) {
+    const prev = existing[r] || 'random';
+    html += `<div class="round-settings-row">
+      <label>${r}回目:</label>
+      <select data-round="${r}">
+        <option value="random"${prev === 'random' ? ' selected' : ''}>ランダム</option>
+        <option value="theme1"${prev === 'theme1' ? ' selected' : ''}>${escHtml(t1)}</option>
+        <option value="theme2"${prev === 'theme2' ? ' selected' : ''}>${escHtml(t2)}</option>
+      </select>
+    </div>`;
+  }
+  wrap.innerHTML = html;
+}
+
+// 席替え回数が変わったらラウンド設定も連動
+document.getElementById('numRounds').addEventListener('change', () => {
+  if (isThemeMode()) buildRoundSettings();
+});
+
+function getRoundModes() {
+  if (!isThemeMode()) {
+    // テーマ未使用時は全ラウンドランダム
+    const n = parseInt(document.getElementById('numRounds').value) || 3;
+    return Array(n).fill('random');
+  }
+  const modes = [];
+  document.querySelectorAll('#round-settings-rows select[data-round]').forEach(sel => {
+    modes.push(sel.value);
+  });
+  return modes;
+}
+
+// ── 名前・テーマ入力 ──
 function toggleNameInput() {
   nameInputVisible = !nameInputVisible;
   const area = document.getElementById('name-input-area');
@@ -277,14 +444,44 @@ function applyPastedNames() {
   const text = document.getElementById('name-paste').value;
   const lines = text.split(/\n/).map(l => l.trim()).filter(l => l);
   if (lines.length === 0) return;
+
+  // タブ区切り検出
+  const hasTab = lines.some(l => l.includes('\t'));
+  let dataLines = lines;
+
+  // ヘッダー行の自動検出
+  if (hasTab && lines.length > 1) {
+    const firstCols = lines[0].split('\t').map(c => c.trim());
+    const headerWords = /名前|テーマ|name|theme|カテゴリ|年代|属性|No|番号/i;
+    if (firstCols.some(c => headerWords.test(c))) {
+      // ヘッダーからテーマ名を取得
+      if (firstCols[1]) {
+        document.getElementById('theme1-name').value = firstCols[1];
+      }
+      if (firstCols[2]) {
+        document.getElementById('theme2-name').value = firstCols[2];
+      }
+      onThemeNameChange();
+      dataLines = lines.slice(1);
+    }
+  }
+
   // 人数を自動更新
-  document.getElementById('numPeople').value = lines.length;
+  document.getElementById('numPeople').value = dataLines.length;
   buildNameInputTable();
+
   // 各行を反映
-  lines.forEach((name, i) => {
-    const inp = document.querySelector(`#name-input-table-wrap input[data-num="${i + 1}"]`);
-    if (inp) inp.value = name;
+  dataLines.forEach((line, i) => {
+    const cols = hasTab ? line.split('\t').map(c => c.trim()) : [line.trim()];
+    const num = i + 1;
+    const nameInp = document.querySelector(`#name-input-table-wrap input[data-col="name"][data-num="${num}"]`);
+    const t1Inp = document.querySelector(`#name-input-table-wrap input[data-col="theme1"][data-num="${num}"]`);
+    const t2Inp = document.querySelector(`#name-input-table-wrap input[data-col="theme2"][data-num="${num}"]`);
+    if (nameInp && cols[0]) nameInp.value = cols[0];
+    if (t1Inp && cols[1]) t1Inp.value = cols[1];
+    if (t2Inp && cols[2]) t2Inp.value = cols[2];
   });
+
   updateNameCount();
 }
 
@@ -295,7 +492,7 @@ function clearNames() {
 }
 
 function updateNameCount() {
-  const inputs = document.querySelectorAll('#name-input-table-wrap input[data-num]');
+  const inputs = document.querySelectorAll('#name-input-table-wrap input[data-col="name"][data-num]');
   const filled = Array.from(inputs).filter(inp => inp.value.trim()).length;
   const badge = document.getElementById('name-count-badge');
   badge.textContent = filled > 0 ? `${filled}名入力済み` : '';
@@ -303,15 +500,37 @@ function updateNameCount() {
 
 function buildNameInputTable() {
   const n = parseInt(document.getElementById('numPeople').value) || 16;
+  const themeOn = isThemeMode();
   const wrap = document.getElementById('name-input-table-wrap');
-  // 既存の名前を保持
-  const existing = {};
-  wrap.querySelectorAll('input[data-num]').forEach(inp => {
-    if (inp.value.trim()) existing[inp.dataset.num] = inp.value.trim();
+  // 既存データを保持
+  const existingName = {};
+  const existingT1 = {};
+  const existingT2 = {};
+  wrap.querySelectorAll('input[data-col="name"][data-num]').forEach(inp => {
+    if (inp.value.trim()) existingName[inp.dataset.num] = inp.value.trim();
   });
-  let html = '<table class="name-input-table"><tr><th>No.</th><td><b>名前</b></td></tr>';
+  wrap.querySelectorAll('input[data-col="theme1"][data-num]').forEach(inp => {
+    if (inp.value.trim()) existingT1[inp.dataset.num] = inp.value.trim();
+  });
+  wrap.querySelectorAll('input[data-col="theme2"][data-num]').forEach(inp => {
+    if (inp.value.trim()) existingT2[inp.dataset.num] = inp.value.trim();
+  });
+
+  const t1 = getThemeName(1);
+  const t2 = getThemeName(2);
+
+  let html = '<table class="name-input-table"><tr><th>No.</th><th>名前</th>';
+  if (themeOn) html += `<th id="th-theme1">${escHtml(t1)}</th><th id="th-theme2">${escHtml(t2)}</th>`;
+  html += '</tr>';
   for (let i = 1; i <= n; i++) {
-    html += `<tr><th>${i}</th><td><input type="text" data-num="${i}" value="${existing[i] || ''}" placeholder="（番号${i}）" oninput="updateNameCount()"></td></tr>`;
+    html += `<tr>
+      <th>${i}</th>
+      <td><input type="text" data-col="name" data-num="${i}" value="${escAttr(existingName[i] || '')}" placeholder="（番号${i}）" oninput="updateNameCount()"></td>`;
+    if (themeOn) {
+      html += `<td><input type="text" data-col="theme1" data-num="${i}" value="${escAttr(existingT1[i] || '')}" placeholder=""></td>`;
+      html += `<td><input type="text" data-col="theme2" data-num="${i}" value="${escAttr(existingT2[i] || '')}" placeholder=""></td>`;
+    }
+    html += '</tr>';
   }
   html += '</table>';
   wrap.innerHTML = html;
@@ -325,7 +544,7 @@ document.getElementById('numPeople').addEventListener('change', () => {
 function getNames() {
   const n = parseInt(document.getElementById('numPeople').value) || 16;
   const names = {};
-  document.querySelectorAll('#name-input-table-wrap input[data-num]').forEach(inp => {
+  document.querySelectorAll('#name-input-table-wrap input[data-col="name"][data-num]').forEach(inp => {
     if (inp.value.trim()) names[parseInt(inp.dataset.num)] = inp.value.trim();
   });
   const result = [];
@@ -335,19 +554,36 @@ function getNames() {
   return result;
 }
 
+function getThemes(themeKey) {
+  const n = parseInt(document.getElementById('numPeople').value) || 16;
+  const themes = [];
+  for (let i = 1; i <= n; i++) {
+    const inp = document.querySelector(`#name-input-table-wrap input[data-col="${themeKey}"][data-num="${i}"]`);
+    themes.push(inp && inp.value.trim() ? inp.value.trim() : '');
+  }
+  return themes;
+}
+
 // ── テーブル名 ──
 function tableName(idx) {
   return String.fromCharCode(65 + idx) + 'テーブル';
 }
 
-// ── コア: 席割り振りアルゴリズム ──
-// 社会的ゴルファー問題の近似解法
-// 重複ペアを最小化するように複数回試行してベストを選ぶ
+// ── シャッフルユーティリティ ──
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
+// ── コア: 生成 ──
 function generate() {
   const numPeople = parseInt(document.getElementById('numPeople').value);
   const numTables = parseInt(document.getElementById('numTables').value);
   const numRounds = parseInt(document.getElementById('numRounds').value);
+  const roundModes = getRoundModes();
 
   if (numPeople < 2 || numTables < 2 || numRounds < 1) {
     alert('入力値を確認してください');
@@ -358,55 +594,57 @@ function generate() {
     return;
   }
 
+  // テーマ使用チェック
+  const usesTheme1 = roundModes.includes('theme1');
+  const usesTheme2 = roundModes.includes('theme2');
+  const themes1 = usesTheme1 ? getThemes('theme1') : [];
+  const themes2 = usesTheme2 ? getThemes('theme2') : [];
+
+  if (usesTheme1 && themes1.every(t => !t)) {
+    alert(getThemeName(1) + 'のデータが入力されていません。\n名前・テーマを入力してください。');
+    return;
+  }
+  if (usesTheme2 && themes2.every(t => !t)) {
+    alert(getThemeName(2) + 'のデータが入力されていません。\n名前・テーマを入力してください。');
+    return;
+  }
+
   // 複数回試行してベストを選ぶ
   let bestResult = null;
   let bestScore = Infinity;
-  const attempts = 500;
+  const attempts = 300;
 
   for (let attempt = 0; attempt < attempts; attempt++) {
-    const result = tryGenerate(numPeople, numTables, numRounds);
-    const score = countDuplicatePairs(result, numPeople);
+    const result = tryGenerate(numPeople, numTables, numRounds, roundModes, themes1, themes2);
+    const score = countDuplicatePairs(result.map(r => r.tables), numPeople);
     if (score < bestScore) {
       bestScore = score;
       bestResult = result;
-      if (score === 0) break; // 完全解
+      if (score === 0) break;
     }
   }
 
-  renderResult(bestResult, numPeople, numTables, numRounds, bestScore);
+  renderResult(bestResult, numPeople, numTables, numRounds, bestScore, roundModes);
 }
 
-function tryGenerate(numPeople, numTables, numRounds) {
-  const rounds = [];
-  // pairCount[i][j] = i番とj番が同席した回数
+function tryGenerate(numPeople, numTables, numRounds, roundModes, themes1, themes2) {
+  const roundResults = [];
   const pairCount = Array.from({ length: numPeople }, () => new Array(numPeople).fill(0));
 
   for (let r = 0; r < numRounds; r++) {
-    // 各テーブルの定員を計算
-    const baseSize = Math.floor(numPeople / numTables);
-    const extra = numPeople % numTables;
-    const tableSizes = [];
-    for (let t = 0; t < numTables; t++) {
-      tableSizes.push(baseSize + (t < extra ? 1 : 0));
+    const mode = roundModes[r] || 'random';
+    let roundData;
+
+    if (mode === 'random') {
+      roundData = tryRandomRound(numPeople, numTables, pairCount);
+    } else {
+      const themes = mode === 'theme1' ? themes1 : themes2;
+      const themeName = mode === 'theme1' ? getThemeName(1) : getThemeName(2);
+      roundData = tryThemeRound(numPeople, numTables, themes, themeName, pairCount);
     }
 
-    let bestRound = null;
-    let bestRoundScore = Infinity;
-
-    // この回で複数パターン試してベストを選ぶ
-    const innerAttempts = 20;
-    for (let a = 0; a < innerAttempts; a++) {
-      const tables = assignRound(numPeople, numTables, tableSizes, pairCount);
-      const score = scoreRound(tables, pairCount);
-      if (score < bestRoundScore) {
-        bestRoundScore = score;
-        bestRound = tables;
-        if (score === 0) break;
-      }
-    }
-
-    // pairCountを更新
-    for (const table of bestRound) {
+    // pairCount更新
+    for (const table of roundData.tables) {
       for (let i = 0; i < table.length; i++) {
         for (let j = i + 1; j < table.length; j++) {
           pairCount[table[i]][table[j]]++;
@@ -414,23 +652,43 @@ function tryGenerate(numPeople, numTables, numRounds) {
         }
       }
     }
-    rounds.push(bestRound);
+    roundResults.push(roundData);
   }
-  return rounds;
+  return roundResults;
 }
 
-function assignRound(numPeople, numTables, tableSizes, pairCount) {
-  const people = Array.from({ length: numPeople }, (_, i) => i);
-  // シャッフル
-  for (let i = people.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [people[i], people[j]] = [people[j], people[i]];
+// ── ランダムラウンド（既存アルゴリズム） ──
+function tryRandomRound(numPeople, numTables, pairCount) {
+  const baseSize = Math.floor(numPeople / numTables);
+  const extra = numPeople % numTables;
+  const tableSizes = [];
+  for (let t = 0; t < numTables; t++) {
+    tableSizes.push(baseSize + (t < extra ? 1 : 0));
   }
 
+  let bestRound = null;
+  let bestScore = Infinity;
+  const innerAttempts = 20;
+
+  for (let a = 0; a < innerAttempts; a++) {
+    const tables = assignRandomRound(numPeople, numTables, tableSizes, pairCount);
+    const score = scoreRound(tables, pairCount);
+    if (score < bestScore) {
+      bestScore = score;
+      bestRound = tables;
+      if (score === 0) break;
+    }
+  }
+
+  const labels = bestRound.map((_, i) => tableName(i));
+  return { tables: bestRound, labels, mode: 'random' };
+}
+
+function assignRandomRound(numPeople, numTables, tableSizes, pairCount) {
+  const people = shuffle(Array.from({ length: numPeople }, (_, i) => i));
   const tables = Array.from({ length: numTables }, () => []);
-  // 貪欲法: 各人を、既存同席ペアが最も少ないテーブルに配置
+
   for (const person of people) {
-    let bestTable = -1;
     let bestCost = Infinity;
     const candidates = [];
 
@@ -448,18 +706,84 @@ function assignRound(numPeople, numTables, tableSizes, pairCount) {
         candidates.push(t);
       }
     }
-    // 同コストなら空きが多いテーブル優先（バランス）、同じなら乱択
+
     if (candidates.length > 1) {
       candidates.sort((a, b) => tables[a].length - tables[b].length);
       const minLen = tables[candidates[0]].length;
       const tied = candidates.filter(c => tables[c].length === minLen);
-      bestTable = tied[Math.floor(Math.random() * tied.length)];
+      tables[tied[Math.floor(Math.random() * tied.length)]].push(person);
     } else {
-      bestTable = candidates[0];
+      tables[candidates[0]].push(person);
     }
-    tables[bestTable].push(person);
   }
   return tables;
+}
+
+// ── テーマ別ラウンド ──
+function tryThemeRound(numPeople, numTables, themes, themeName, pairCount) {
+  // テーマごとにグループ化
+  const groups = {};
+  const noTheme = [];
+  for (let i = 0; i < numPeople; i++) {
+    const t = themes[i] || '';
+    if (!t) {
+      noTheme.push(i);
+    } else {
+      if (!groups[t]) groups[t] = [];
+      groups[t].push(i);
+    }
+  }
+
+  // テーブルの最大人数
+  const maxPerTable = Math.ceil(numPeople / numTables);
+
+  const tables = [];
+  const labels = [];
+
+  // テーマグループごとにテーブル割り当て
+  const sortedThemes = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
+
+  for (const theme of sortedThemes) {
+    const members = shuffle([...groups[theme]]);
+
+    if (members.length <= maxPerTable) {
+      // 1テーブルに収まる
+      tables.push(members);
+      labels.push(theme);
+    } else {
+      // 複数テーブルに分割
+      const numSplit = Math.ceil(members.length / maxPerTable);
+      const splitSize = Math.ceil(members.length / numSplit);
+      for (let s = 0; s < numSplit; s++) {
+        const chunk = members.slice(s * splitSize, (s + 1) * splitSize);
+        if (chunk.length > 0) {
+          tables.push(chunk);
+          labels.push(numSplit > 1 ? `${theme}(${s + 1})` : theme);
+        }
+      }
+    }
+  }
+
+  // テーマ未回答の人を既存テーブルの空きに分配、または別テーブルに
+  if (noTheme.length > 0) {
+    const shuffledNoTheme = shuffle([...noTheme]);
+    // まず空きのあるテーブルに入れる
+    let idx = 0;
+    for (let t = 0; t < tables.length && idx < shuffledNoTheme.length; t++) {
+      while (tables[t].length < maxPerTable && idx < shuffledNoTheme.length) {
+        tables[t].push(shuffledNoTheme[idx++]);
+      }
+    }
+    // まだ残りがある場合は新テーブル作成
+    while (idx < shuffledNoTheme.length) {
+      const chunk = shuffledNoTheme.slice(idx, idx + maxPerTable);
+      tables.push(chunk);
+      labels.push('未回答');
+      idx += maxPerTable;
+    }
+  }
+
+  return { tables, labels, mode: 'theme' };
 }
 
 function scoreRound(tables, pairCount) {
@@ -474,9 +798,9 @@ function scoreRound(tables, pairCount) {
   return score;
 }
 
-function countDuplicatePairs(rounds, numPeople) {
+function countDuplicatePairs(allTables, numPeople) {
   const pairCount = Array.from({ length: numPeople }, () => new Array(numPeople).fill(0));
-  for (const round of rounds) {
+  for (const round of allTables) {
     for (const table of round) {
       for (let i = 0; i < table.length; i++) {
         for (let j = i + 1; j < table.length; j++) {
@@ -495,8 +819,7 @@ function countDuplicatePairs(rounds, numPeople) {
 }
 
 // ── 結果表示 ──
-
-function renderResult(rounds, numPeople, numTables, numRounds, dupeScore) {
+function renderResult(roundResults, numPeople, numTables, numRounds, dupeScore, roundModes) {
   const names = getNames();
   let html = '<div class="result-section">';
 
@@ -508,11 +831,16 @@ function renderResult(rounds, numPeople, numTables, numRounds, dupeScore) {
   html += `<div class="stats"><span class="${statsClass}">${statsText}</span>　参加者${numPeople}名 / ${numTables}テーブル / ${numRounds}回</div>`;
 
   // 各ラウンドのテーブル表示
-  for (let r = 0; r < rounds.length; r++) {
-    html += `<h2>🔄 ${r + 1}回目</h2><div class="round-grid">`;
-    for (let t = 0; t < rounds[r].length; t++) {
-      html += `<div class="table-card"><h4>${tableName(t)}</h4>`;
-      for (const p of rounds[r][t]) {
+  for (let r = 0; r < roundResults.length; r++) {
+    const rd = roundResults[r];
+    const modeLabel = rd.mode === 'random'
+      ? '<span class="round-mode-badge badge-random">ランダム</span>'
+      : `<span class="round-mode-badge badge-theme">${escHtml(roundModes[r] === 'theme1' ? getThemeName(1) : getThemeName(2))}</span>`;
+
+    html += `<h2>🔄 ${r + 1}回目${modeLabel}</h2><div class="round-grid">`;
+    for (let t = 0; t < rd.tables.length; t++) {
+      html += `<div class="table-card"><h4>${escHtml(rd.labels[t])}</h4>`;
+      for (const p of rd.tables[t]) {
         html += `<div class="member"><span class="num">${p + 1}</span> ${escHtml(names[p])}</div>`;
       }
       html += '</div>';
@@ -530,10 +858,11 @@ function renderResult(rounds, numPeople, numTables, numRounds, dupeScore) {
 
   // 各人のテーブル割り当てを集計
   const personTables = Array.from({ length: numPeople }, () => []);
-  for (let r = 0; r < rounds.length; r++) {
-    for (let t = 0; t < rounds[r].length; t++) {
-      for (const p of rounds[r][t]) {
-        personTables[p].push(tableName(t));
+  for (let r = 0; r < roundResults.length; r++) {
+    const rd = roundResults[r];
+    for (let t = 0; t < rd.tables.length; t++) {
+      for (const p of rd.tables[t]) {
+        personTables[p].push(rd.labels[t]);
       }
     }
   }
@@ -541,7 +870,7 @@ function renderResult(rounds, numPeople, numTables, numRounds, dupeScore) {
   for (let p = 0; p < numPeople; p++) {
     html += `<tr><td><b>${p + 1}</b></td><td>${escHtml(names[p])}</td>`;
     for (const tn of personTables[p]) {
-      html += `<td>${tn}</td>`;
+      html += `<td>${escHtml(tn)}</td>`;
     }
     html += '</tr>';
   }
@@ -558,41 +887,33 @@ function renderResult(rounds, numPeople, numTables, numRounds, dupeScore) {
   document.getElementById('result').innerHTML = html;
 
   // データをグローバルに保持（ダウンロード用）
-  window._lastResult = { rounds, numPeople, numTables, numRounds, names, personTables };
-}
-
-function escHtml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  window._lastResult = { roundResults, numPeople, numTables, numRounds, names, personTables, roundModes };
 }
 
 // ── CSVダウンロード ──
-
 function downloadCSV() {
   const d = window._lastResult;
   if (!d) return;
 
-  // BOM付きUTF-8
-  let csv = '\uFEFF';
-
-  // ヘッダー
+  let csv = '\uFEFF'; // BOM
   csv += '番号,名前';
   for (let r = 0; r < d.numRounds; r++) csv += `,${r + 1}回目`;
   csv += '\n';
 
-  // データ
   for (let p = 0; p < d.numPeople; p++) {
-    csv += `${p + 1},${d.names[p]}`;
-    for (const tn of d.personTables[p]) csv += `,${tn}`;
+    csv += `${p + 1},"${d.names[p]}"`;
+    for (const tn of d.personTables[p]) csv += `,"${tn}"`;
     csv += '\n';
   }
 
-  // ラウンド別詳細
   csv += '\n--- ラウンド別詳細 ---\n';
-  for (let r = 0; r < d.rounds.length; r++) {
-    csv += `\n${r + 1}回目\n`;
-    for (let t = 0; t < d.rounds[r].length; t++) {
-      const members = d.rounds[r][t].map(p => `${p + 1}番 ${d.names[p]}`).join(' / ');
-      csv += `${tableName(t)},${members}\n`;
+  for (let r = 0; r < d.roundResults.length; r++) {
+    const rd = d.roundResults[r];
+    const modeText = rd.mode === 'random' ? 'ランダム' : (d.roundModes[r] === 'theme1' ? getThemeName(1) : getThemeName(2));
+    csv += `\n${r + 1}回目（${modeText}）\n`;
+    for (let t = 0; t < rd.tables.length; t++) {
+      const members = rd.tables[t].map(p => `${p + 1}番 ${d.names[p]}`).join(' / ');
+      csv += `"${rd.labels[t]}",${members}\n`;
     }
   }
 
@@ -605,19 +926,16 @@ function downloadCSV() {
   URL.revokeObjectURL(url);
 }
 
-// ── Excelダウンロード（xlsx形式・ライブラリ不要の簡易XML） ──
-
+// ── Excelダウンロード ──
 function downloadExcel() {
   const d = window._lastResult;
   if (!d) return;
 
-  // SpreadsheetML (XML) 形式 — Excelで開ける
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<?mso-application progid="Excel.Sheet"?>\n';
   xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n';
   xml += ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">\n';
 
-  // スタイル
   xml += '<Styles>\n';
   xml += '<Style ss:ID="header"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#6366F1" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center"/></Style>\n';
   xml += '<Style ss:ID="center"><Alignment ss:Horizontal="Center"/></Style>\n';
@@ -626,7 +944,6 @@ function downloadExcel() {
 
   // シート1: 番号別一覧
   xml += '<Worksheet ss:Name="番号別一覧">\n<Table>\n';
-  // ヘッダー
   xml += '<Row>';
   xml += '<Cell ss:StyleID="header"><Data ss:Type="String">番号</Data></Cell>';
   xml += '<Cell ss:StyleID="header"><Data ss:Type="String">名前</Data></Cell>';
@@ -634,7 +951,6 @@ function downloadExcel() {
     xml += `<Cell ss:StyleID="header"><Data ss:Type="String">${r + 1}回目</Data></Cell>`;
   }
   xml += '</Row>\n';
-  // データ
   for (let p = 0; p < d.numPeople; p++) {
     xml += '<Row>';
     xml += `<Cell ss:StyleID="center"><Data ss:Type="Number">${p + 1}</Data></Cell>`;
@@ -648,12 +964,14 @@ function downloadExcel() {
 
   // シート2: ラウンド別
   xml += '<Worksheet ss:Name="ラウンド別">\n<Table>\n';
-  for (let r = 0; r < d.rounds.length; r++) {
-    xml += `<Row><Cell ss:StyleID="tableHeader"><Data ss:Type="String">${r + 1}回目</Data></Cell></Row>\n`;
-    for (let t = 0; t < d.rounds[r].length; t++) {
+  for (let r = 0; r < d.roundResults.length; r++) {
+    const rd = d.roundResults[r];
+    const modeText = rd.mode === 'random' ? 'ランダム' : (d.roundModes[r] === 'theme1' ? getThemeName(1) : getThemeName(2));
+    xml += `<Row><Cell ss:StyleID="tableHeader"><Data ss:Type="String">${r + 1}回目（${escXml(modeText)}）</Data></Cell></Row>\n`;
+    for (let t = 0; t < rd.tables.length; t++) {
       xml += '<Row>';
-      xml += `<Cell><Data ss:Type="String">${escXml(tableName(t))}</Data></Cell>`;
-      for (const p of d.rounds[r][t]) {
+      xml += `<Cell><Data ss:Type="String">${escXml(rd.labels[t])}</Data></Cell>`;
+      for (const p of rd.tables[t]) {
         xml += `<Cell><Data ss:Type="String">${p + 1}番 ${escXml(d.names[p])}</Data></Cell>`;
       }
       xml += '</Row>\n';
@@ -661,7 +979,6 @@ function downloadExcel() {
     xml += '<Row></Row>\n';
   }
   xml += '</Table>\n</Worksheet>\n';
-
   xml += '</Workbook>';
 
   const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
@@ -673,9 +990,19 @@ function downloadExcel() {
   URL.revokeObjectURL(url);
 }
 
+// ── ユーティリティ ──
+function escHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function escAttr(s) {
+  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 function escXml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
+// ── 初期化 ──
+// テーマモードOFF状態で起動（チェック入れたときに初めてbuildRoundSettings）
 </script>
 </body>
 </html>
