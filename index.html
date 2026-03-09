@@ -305,23 +305,28 @@
       </div>
     </div>
 
-    <!-- ラウンド設定 -->
-    <div id="round-settings-area" style="margin-bottom:16px">
-      <h3>🔧 ラウンド設定</h3>
-      <div class="theme-name-row">
-        <span class="theme-label">テーマ名:</span>
-        <input type="text" id="theme1-name" value="テーマ1" placeholder="例: 年代別" oninput="onThemeNameChange()">
-        <input type="text" id="theme2-name" value="テーマ2" placeholder="例: 5つの力" oninput="onThemeNameChange()">
+    <!-- テーマ別チェック -->
+    <div style="margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.9rem;font-weight:600">
+        <input type="checkbox" id="useTheme" onchange="onThemeToggle()" style="width:18px;height:18px;accent-color:var(--accent)">
+        テーマ別に座席を指定する
+      </label>
+      <div id="theme-settings-area" style="display:none;margin-top:12px;padding:16px;background:#f8f7ff;border-radius:10px;border:1px solid #e0def7">
+        <div class="theme-name-row" style="margin-bottom:12px">
+          <span class="theme-label">テーマ名:</span>
+          <input type="text" id="theme1-name" value="テーマ1" placeholder="例: 年代別" oninput="onThemeNameChange()">
+          <input type="text" id="theme2-name" value="テーマ2" placeholder="例: 5つの力" oninput="onThemeNameChange()">
+        </div>
+        <div id="round-settings-rows"></div>
       </div>
-      <div id="round-settings-rows"></div>
     </div>
 
     <!-- 名前・テーマ入力 -->
     <div class="toggle-section">
-      <button class="toggle-btn" onclick="toggleNameInput()">📝 名前・テーマを入力する（任意）</button>
+      <button class="toggle-btn" onclick="toggleNameInput()" id="name-input-toggle-btn">📝 名前を入力する（任意）</button>
       <div id="name-input-area" style="display:none;margin-top:12px">
-        <p class="hint">スプレッドシートからコピペできます（タブ区切り: 名前 → テーマ1 → テーマ2）。名前だけの貼り付けもOK。</p>
-        <textarea id="name-paste" rows="6" placeholder="田中太郎&#9;20代&#9;稼ぐ力&#10;山田花子&#9;30代&#9;貯める力&#10;佐藤次郎&#9;20代&#9;守る力&#10;&#10;※タブ区切りでスプレッドシートから貼り付け&#10;※名前だけでもOK" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;resize:vertical;margin-bottom:8px;font-family:monospace"></textarea>
+        <p class="hint" id="paste-hint">名前を1行1名で貼り付けてください。空欄の場合は番号で表示されます。</p>
+        <textarea id="name-paste" rows="6" placeholder="田中太郎&#10;山田花子&#10;佐藤次郎&#10;（1行に1名ずつ貼り付け）" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;resize:vertical;margin-bottom:8px;font-family:monospace"></textarea>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
           <button class="btn btn-ghost" style="font-size:0.82rem" onclick="applyPastedNames()">反映</button>
           <button class="btn btn-ghost" style="font-size:0.82rem;color:#ef4444" onclick="clearNames()">クリア</button>
@@ -338,6 +343,29 @@
 <script>
 // ── 状態 ──
 let nameInputVisible = false;
+
+// ── テーマ別トグル ──
+function isThemeMode() {
+  return document.getElementById('useTheme').checked;
+}
+
+function onThemeToggle() {
+  const on = isThemeMode();
+  document.getElementById('theme-settings-area').style.display = on ? '' : 'none';
+  // ボタン・ヒント・プレースホルダ切替
+  document.getElementById('name-input-toggle-btn').textContent = on
+    ? '📝 名前・テーマを入力する（任意）'
+    : '📝 名前を入力する（任意）';
+  document.getElementById('paste-hint').textContent = on
+    ? 'スプレッドシートからコピペできます（タブ区切り: 名前 → テーマ1 → テーマ2）。名前だけの貼り付けもOK。'
+    : '名前を1行1名で貼り付けてください。空欄の場合は番号で表示されます。';
+  document.getElementById('name-paste').placeholder = on
+    ? '田中太郎\t20代\t稼ぐ力\n山田花子\t30代\t貯める力\n佐藤次郎\t20代\t守る力\n\n※タブ区切りでスプレッドシートから貼り付け\n※名前だけでもOK'
+    : '田中太郎\n山田花子\n佐藤次郎\n（1行に1名ずつ貼り付け）';
+  if (on) buildRoundSettings();
+  // 名簿テーブルが開いていたら列を更新
+  if (nameInputVisible) buildNameInputTable();
+}
 
 // ── テーマ名 ──
 function getThemeName(idx) {
@@ -386,9 +414,17 @@ function buildRoundSettings() {
   wrap.innerHTML = html;
 }
 
-document.getElementById('numRounds').addEventListener('change', buildRoundSettings);
+// 席替え回数が変わったらラウンド設定も連動
+document.getElementById('numRounds').addEventListener('change', () => {
+  if (isThemeMode()) buildRoundSettings();
+});
 
 function getRoundModes() {
+  if (!isThemeMode()) {
+    // テーマ未使用時は全ラウンドランダム
+    const n = parseInt(document.getElementById('numRounds').value) || 3;
+    return Array(n).fill('random');
+  }
   const modes = [];
   document.querySelectorAll('#round-settings-rows select[data-round]').forEach(sel => {
     modes.push(sel.value);
@@ -464,6 +500,7 @@ function updateNameCount() {
 
 function buildNameInputTable() {
   const n = parseInt(document.getElementById('numPeople').value) || 16;
+  const themeOn = isThemeMode();
   const wrap = document.getElementById('name-input-table-wrap');
   // 既存データを保持
   const existingName = {};
@@ -482,15 +519,18 @@ function buildNameInputTable() {
   const t1 = getThemeName(1);
   const t2 = getThemeName(2);
 
-  let html = `<table class="name-input-table">
-    <tr><th>No.</th><th>名前</th><th id="th-theme1">${escHtml(t1)}</th><th id="th-theme2">${escHtml(t2)}</th></tr>`;
+  let html = '<table class="name-input-table"><tr><th>No.</th><th>名前</th>';
+  if (themeOn) html += `<th id="th-theme1">${escHtml(t1)}</th><th id="th-theme2">${escHtml(t2)}</th>`;
+  html += '</tr>';
   for (let i = 1; i <= n; i++) {
     html += `<tr>
       <th>${i}</th>
-      <td><input type="text" data-col="name" data-num="${i}" value="${escAttr(existingName[i] || '')}" placeholder="（番号${i}）" oninput="updateNameCount()"></td>
-      <td><input type="text" data-col="theme1" data-num="${i}" value="${escAttr(existingT1[i] || '')}" placeholder=""></td>
-      <td><input type="text" data-col="theme2" data-num="${i}" value="${escAttr(existingT2[i] || '')}" placeholder=""></td>
-    </tr>`;
+      <td><input type="text" data-col="name" data-num="${i}" value="${escAttr(existingName[i] || '')}" placeholder="（番号${i}）" oninput="updateNameCount()"></td>`;
+    if (themeOn) {
+      html += `<td><input type="text" data-col="theme1" data-num="${i}" value="${escAttr(existingT1[i] || '')}" placeholder=""></td>`;
+      html += `<td><input type="text" data-col="theme2" data-num="${i}" value="${escAttr(existingT2[i] || '')}" placeholder=""></td>`;
+    }
+    html += '</tr>';
   }
   html += '</table>';
   wrap.innerHTML = html;
@@ -962,7 +1002,7 @@ function escXml(s) {
 }
 
 // ── 初期化 ──
-buildRoundSettings();
+// テーマモードOFF状態で起動（チェック入れたときに初めてbuildRoundSettings）
 </script>
 </body>
 </html>
